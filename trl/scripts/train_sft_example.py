@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+# /// script
+# dependencies = [
+#     "trl>=0.12.0",
+#     "peft>=0.7.0",
+#     "transformers>=4.36.0",
+#     "accelerate>=0.24.0",
+#     "trackio",  # For real-time monitoring
+# ]
+# ///
+
+"""
+Production-ready SFT training example with all best practices.
+
+This script demonstrates:
+- Trackio integration for real-time monitoring
+- LoRA/PEFT for efficient training
+- Proper Hub saving configuration
+- Checkpoint management
+- Optimized training parameters
+
+Usage with hf_jobs MCP tool:
+    hf_jobs("uv", {
+        "script": '''<paste this entire file>''',
+        "flavor": "a10g-large",
+        "timeout": "3h",
+        "secrets": {"HF_TOKEN": "$HF_TOKEN"},
+    })
+
+Or submit the script content directly inline without saving to a file.
+"""
+
+import trackio
+from datasets import load_dataset
+from peft import LoraConfig
+from trl import SFTTrainer, SFTConfig
+
+# Initialize Trackio for real-time monitoring
+trackio.init(
+    project="qwen-capybara-sft",
+    space_id="username/my-trackio-dashboard",  # Creates Space if it doesn't exist
+    config={
+        "model": "Qwen/Qwen2.5-0.5B",
+        "dataset": "trl-lib/Capybara",
+        "learning_rate": 2e-5,
+        "num_epochs": 3,
+        "peft_method": "LoRA",
+    }
+)
+
+# Load and validate
+dataset = load_dataset("trl-lib/Capybara", split="train")
+print(f"✅ Dataset loaded: {len(dataset)} examples")
+
+# Training configuration
+config = SFTConfig(
+    # CRITICAL: Hub settings
+    output_dir="qwen-capybara-sft",
+    push_to_hub=True,
+    hub_model_id="username/qwen-capybara-sft",
+    hub_strategy="every_save",  # Push checkpoints
+
+    # Training parameters
+    num_train_epochs=3,
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=4,
+    learning_rate=2e-5,
+
+    # Logging & checkpointing
+    logging_steps=10,
+    save_strategy="steps",
+    save_steps=100,
+    save_total_limit=2,
+
+    # Optimization
+    warmup_ratio=0.1,
+    lr_scheduler_type="cosine",
+
+    # Monitoring
+    report_to="trackio",  # Integrate with Trackio
+)
+
+# LoRA configuration
+peft_config = LoraConfig(
+    r=16,
+    lora_alpha=32,
+    lora_dropout=0.05,
+    bias="none",
+    task_type="CAUSAL_LM",
+    target_modules=["q_proj", "v_proj"],
+)
+
+# Initialize and train
+trainer = SFTTrainer(
+    model="Qwen/Qwen2.5-0.5B",
+    train_dataset=dataset,
+    args=config,
+    peft_config=peft_config,
+)
+
+print("🚀 Starting training...")
+trainer.train()
+
+print("💾 Pushing to Hub...")
+trainer.push_to_hub()
+
+# Finish Trackio tracking
+trackio.finish()
+
+print("✅ Complete! Model at: https://huggingface.co/username/qwen-capybara-sft")
+print("📊 View metrics at: https://huggingface.co/spaces/username/my-trackio-dashboard")
