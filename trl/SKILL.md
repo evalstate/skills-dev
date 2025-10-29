@@ -42,13 +42,20 @@ Use this skill when users want to:
 
 When assisting with training jobs:
 
-1. **Submit jobs directly with inline scripts** - The `script` parameter accepts Python code directly. Do NOT save to local files unless the user explicitly requests it. Pass the script content as a string to `hf_jobs()`.
+1. **Submit jobs directly with inline scripts** - The `script` parameter accepts Python code directly. Do NOT save to local files unless the user explicitly requests it. Pass the script content as a string to `hf_jobs()`. If user asks to "train a model", "fine-tune", or similar requests, you MUST create the training script AND submit the job immediately.
 
 2. **Always include Trackio** - Every training script should include Trackio for real-time monitoring. Use example scripts in `scripts/` as templates.
 
 3. **Provide job details after submission** - After submitting, provide job ID, monitoring URL, estimated time, and note that the user can request status checks later.
 
 4. **Use example scripts as templates** - Reference `scripts/train_sft_example.py`, `scripts/train_dpo_example.py`, etc. as starting points.
+
+## Local Script Dependencies
+
+To run scripts locally (like `validate_dataset.py`, `estimate_cost.py`), install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
 ## Prerequisites Checklist
 
