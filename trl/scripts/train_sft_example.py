@@ -16,6 +16,7 @@ This script demonstrates:
 - Trackio integration for real-time monitoring
 - LoRA/PEFT for efficient training
 - Proper Hub saving configuration
+- Train/eval split for monitoring
 - Checkpoint management
 - Optimized training parameters
 
@@ -48,9 +49,18 @@ trackio.init(
     }
 )
 
-# Load and validate
+# Load dataset
+print("📦 Loading dataset...")
 dataset = load_dataset("trl-lib/Capybara", split="train")
 print(f"✅ Dataset loaded: {len(dataset)} examples")
+
+# Create train/eval split
+print("🔀 Creating train/eval split...")
+dataset_split = dataset.train_test_split(test_size=0.1, seed=42)
+train_dataset = dataset_split["train"]
+eval_dataset = dataset_split["test"]
+print(f"   Train: {len(train_dataset)} examples")
+print(f"   Eval: {len(eval_dataset)} examples")
 
 # Training configuration
 config = SFTConfig(
@@ -72,6 +82,10 @@ config = SFTConfig(
     save_steps=100,
     save_total_limit=2,
 
+    # Evaluation - IMPORTANT: Only enable if eval_dataset provided
+    eval_strategy="steps",
+    eval_steps=100,
+
     # Optimization
     warmup_ratio=0.1,
     lr_scheduler_type="cosine",
@@ -91,9 +105,11 @@ peft_config = LoraConfig(
 )
 
 # Initialize and train
+print("🎯 Initializing trainer...")
 trainer = SFTTrainer(
     model="Qwen/Qwen2.5-0.5B",
-    train_dataset=dataset,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,  # CRITICAL: Must provide eval_dataset when eval_strategy is enabled
     args=config,
     peft_config=peft_config,
 )
