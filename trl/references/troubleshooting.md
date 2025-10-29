@@ -257,7 +257,7 @@ If issues persist:
 3. **Review related guides:**
    - `references/hub_saving.md` - Hub authentication issues
    - `references/hardware_guide.md` - Hardware selection and specs
-   - `references/uv_scripts_guide.md` - UV script format issues
    - `references/training_patterns.md` - Eval dataset requirements
+   - SKILL.md "Working with Scripts" section - Script format and URL issues
 
 4. **Ask in HF forums:** https://discuss.huggingface.co/

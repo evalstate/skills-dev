@@ -40,7 +40,7 @@ Use this skill when users want to:
 
 When assisting with training jobs:
 
-1. **Submit jobs directly with inline scripts** - The `script` parameter accepts Python code directly. Do NOT save to local files unless the user explicitly requests it. Pass the script content as a string to `hf_jobs()`. If user asks to "train a model", "fine-tune", or similar requests, you MUST create the training script AND submit the job immediately.
+1. **ALWAYS use `hf_jobs()` MCP tool** - Submit jobs using `hf_jobs("uv", {...})`, NOT bash `trl-jobs` commands. The `script` parameter accepts Python code directly. Do NOT save to local files unless the user explicitly requests it. Pass the script content as a string to `hf_jobs()`. If user asks to "train a model", "fine-tune", or similar requests, you MUST create the training script AND submit the job immediately using `hf_jobs()`.
 
 2. **Always include Trackio** - Every training script should include Trackio for real-time monitoring. Use example scripts in `scripts/` as templates.
 
@@ -116,27 +116,9 @@ The job is running in the background. Ask me to check status/logs when ready!
 
 ## Quick Start: Three Approaches
 
-### Approach 1: TRL Jobs Package (Easiest—Recommended for Beginners)
+### Approach 1: UV Scripts (Recommended—Default Choice)
 
-The `trl-jobs` package provides optimized defaults and one-liner training:
-
-```bash
-# Install (users only, not needed for this environment)
-pip install trl-jobs
-
-# Train with SFT (simplest possible)
-trl-jobs sft \
-  --model_name Qwen/Qwen2.5-0.5B \
-  --dataset_name trl-lib/Capybara
-```
-
-**Benefits:** Pre-configured settings, automatic Trackio integration, automatic Hub push, one-line commands
-**When to use:** User is new to training, standard scenarios, quick experimentation
-**Repository:** https://github.com/huggingface/trl-jobs
-
-### Approach 2: UV Scripts (Recommended for Custom Training)
-
-UV scripts use PEP 723 inline dependencies for clean, self-contained training. **Submit script content directly inline:**
+UV scripts use PEP 723 inline dependencies for clean, self-contained training. **This is the primary approach for Claude Code.**
 
 ```python
 hf_jobs("uv", {
@@ -183,11 +165,50 @@ trackio.finish()
 })
 ```
 
-**Benefits:** Clean code, dependencies declared inline (PEP 723), no file saving required
-**When to use:** Custom training logic, full control over training
-**See:** `references/uv_scripts_guide.md` for complete UV scripts guide
+**Benefits:** Direct MCP tool usage, clean code, dependencies declared inline (PEP 723), no file saving required, full control
+**When to use:** Default choice for all training tasks in Claude Code, custom training logic, any scenario requiring `hf_jobs()`
 
-### Approach 3: TRL Maintained Scripts (Run Official Examples)
+#### Working with Scripts
+
+⚠️ **Important:** The `script` parameter accepts either inline code (as shown above) OR a URL. **Local file paths do NOT work.**
+
+**Why local paths don't work:**
+Jobs run in isolated Docker containers without access to your local filesystem. Scripts must be:
+- Inline code (recommended for custom training)
+- Publicly accessible URLs
+- Private repo URLs (with HF_TOKEN)
+
+**Common mistakes:**
+```python
+# ❌ These will all fail
+hf_jobs("uv", {"script": "train.py"})
+hf_jobs("uv", {"script": "./scripts/train.py"})
+hf_jobs("uv", {"script": "/path/to/train.py"})
+```
+
+**Correct approaches:**
+```python
+# ✅ Inline code (recommended)
+hf_jobs("uv", {"script": "# /// script\n# dependencies = [...]\n# ///\n\n<your code>"})
+
+# ✅ From Hugging Face Hub
+hf_jobs("uv", {"script": "https://huggingface.co/user/repo/resolve/main/train.py"})
+
+# ✅ From GitHub
+hf_jobs("uv", {"script": "https://raw.githubusercontent.com/user/repo/main/train.py"})
+
+# ✅ From Gist
+hf_jobs("uv", {"script": "https://gist.githubusercontent.com/user/id/raw/train.py"})
+```
+
+**To use local scripts:** Upload to HF Hub first:
+```bash
+huggingface-cli repo create my-training-scripts --type model
+huggingface-cli upload my-training-scripts ./train.py train.py
+# Use: https://huggingface.co/USERNAME/my-training-scripts/resolve/main/train.py
+```
+
+### Approach 2: TRL Maintained Scripts (Official Examples)
 
 TRL provides battle-tested scripts for all methods. Can be run from URLs:
 
@@ -224,6 +245,26 @@ hub_repo_details(["uv-scripts/classification"], repo_type="dataset", include_rea
 ```
 
 **Popular collections:** ocr, classification, synthetic-data, vllm, dataset-creation
+
+### Approach 3: TRL Jobs Package (For Terminal Use)
+
+The `trl-jobs` package provides optimized defaults and one-liner training. **Note: This approach uses bash commands, not `hf_jobs()` MCP tool.**
+
+```bash
+# Install (users only, not needed for this environment)
+pip install trl-jobs
+
+# Train with SFT (simplest possible)
+trl-jobs sft \
+  --model_name Qwen/Qwen2.5-0.5B \
+  --dataset_name trl-lib/Capybara
+```
+
+**Benefits:** Pre-configured settings, automatic Trackio integration, automatic Hub push, one-line commands
+**When to use:** User working in terminal directly (not Claude Code context), quick local experimentation
+**Repository:** https://github.com/huggingface/trl-jobs
+
+⚠️ **In Claude Code context, use Approach 1 (UV Scripts) with `hf_jobs()` instead.**
 
 ## Hardware Selection
 
@@ -545,7 +586,6 @@ Add to PEP 723 header:
 - `references/training_patterns.md` - Common training patterns and examples
 - `references/gguf_conversion.md` - Complete GGUF conversion guide
 - `references/trackio_guide.md` - Trackio monitoring setup
-- `references/uv_scripts_guide.md` - Complete UV scripts guide
 - `references/hardware_guide.md` - Hardware specs and selection
 - `references/hub_saving.md` - Hub authentication troubleshooting
 - `references/troubleshooting.md` - Common issues and solutions
@@ -577,7 +617,7 @@ Add to PEP 723 header:
 4. **Always enable Hub push** - Environment is ephemeral; without push, all results lost
 5. **Include Trackio** - Use example scripts as templates for real-time monitoring
 6. **Offer cost estimation** - When parameters are known, use `scripts/estimate_cost.py`
-7. **Three approaches available:** TRL Jobs package (easiest), UV scripts (custom, modern), TRL maintained scripts (official examples)
+7. **Use UV scripts (Approach 1)** - Default to `hf_jobs("uv", {...})` with inline scripts; TRL maintained scripts for standard training; avoid bash `trl-jobs` commands in Claude Code
 8. **Use hf_doc_fetch/hf_doc_search** for latest TRL documentation
 9. **Validate dataset format** before training with dataset inspector (see Dataset Validation section)
 10. **Choose appropriate hardware** for model size; use LoRA for models >7B
