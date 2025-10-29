@@ -24,10 +24,13 @@ trainer = SFTTrainer(
         output_dir="my-model",
         push_to_hub=True,
         hub_model_id="username/my-model",
+        eval_strategy="no",  # Disable eval for simple example
     )
 )
 trainer.train()
 ```
+
+**Note:** For production training with evaluation monitoring, see `scripts/train_sft_example.py`
 
 **Documentation:** `hf_doc_fetch("https://huggingface.co/docs/trl/sft_trainer")`
 
@@ -52,10 +55,13 @@ trainer = DPOTrainer(
     args=DPOConfig(
         output_dir="dpo-model",
         beta=0.1,  # KL penalty coefficient
+        eval_strategy="no",  # Disable eval for simple example
     )
 )
 trainer.train()
 ```
+
+**Note:** For production training with evaluation monitoring, see `scripts/train_dpo_example.py`
 
 **Documentation:** `hf_doc_fetch("https://huggingface.co/docs/trl/dpo_trainer")`
 
