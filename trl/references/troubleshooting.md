@@ -103,8 +103,15 @@ trainer = SFTTrainer(
 
 2. **Validate dataset before training:**
    ```bash
-   python scripts/validate_dataset.py <dataset-name> <method>
-   # e.g., python scripts/validate_dataset.py trl-lib/Capybara sft
+   uv run https://huggingface.co/datasets/mcp-tools/skills/raw/main/dataset_inspector.py \
+     --dataset <dataset-name> --split train
+   ```
+   Or via hf_jobs:
+   ```python
+   hf_jobs("uv", {
+       "script": "https://huggingface.co/datasets/mcp-tools/skills/raw/main/dataset_inspector.py",
+       "script_args": ["--dataset", "dataset-name", "--split", "train"]
+   })
    ```
 
 3. **Verify field names:**

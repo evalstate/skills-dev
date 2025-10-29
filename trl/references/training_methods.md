@@ -166,8 +166,9 @@ hf_doc_fetch("https://huggingface.co/docs/trl/dataset_formats")
 ```
 
 Or validate your dataset:
-```python
-# See scripts/validate_dataset.py
+```bash
+uv run https://huggingface.co/datasets/mcp-tools/skills/raw/main/dataset_inspector.py \
+  --dataset your/dataset --split train
 ```
 
 ## See Also
@@ -175,4 +176,4 @@ Or validate your dataset:
 - `references/training_patterns.md` - Common training patterns and examples
 - `scripts/train_sft_example.py` - Complete SFT template
 - `scripts/train_dpo_example.py` - Complete DPO template
-- `scripts/validate_dataset.py` - Dataset format validation tool
+- [Dataset Inspector](https://huggingface.co/datasets/mcp-tools/skills/raw/main/dataset_inspector.py) - Dataset format validation tool

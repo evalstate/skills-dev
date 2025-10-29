@@ -1,6 +1,6 @@
 ---
 name: trl
-description: This skill should be used when users want to train or fine-tune language models using TRL (Transformer Reinforcement Learning) on Hugging Face Jobs infrastructure. Covers SFT, DPO, GRPO, KTO, reward modeling, and PPO training methods, plus GGUF conversion for local deployment. Includes guidance on the TRL Jobs package, UV scripts with PEP 723 format, dataset preparation and validation, hardware selection, cost estimation, Trackio monitoring, Hub authentication, and model persistence. Should be invoked for tasks involving cloud GPU training, GGUF conversion, or when users mention training on Hugging Face Jobs without local GPU setup.
+description: This skill should be used when users want to train or fine-tune language models using TRL (Transformer Reinforcement Learning) on Hugging Face Jobs infrastructure. Covers SFT, DPO, GRPO and reward modeling training methods, plus GGUF conversion for local deployment. Includes guidance on the TRL Jobs package, UV scripts with PEP 723 format, dataset preparation and validation, hardware selection, cost estimation, Trackio monitoring, Hub authentication, and model persistence. Should be invoked for tasks involving cloud GPU training, GGUF conversion, or when users mention training on Hugging Face Jobs without local GPU setup.
 license: Complete terms in LICENSE.txt
 ---
 
@@ -14,9 +14,7 @@ Train language models using TRL (Transformer Reinforcement Learning) on fully ma
 - **SFT** (Supervised Fine-Tuning) - Standard instruction tuning
 - **DPO** (Direct Preference Optimization) - Alignment from preference data
 - **GRPO** (Group Relative Policy Optimization) - Online RL training
-- **KTO** (Kahneman-Tversky Optimization) - Preference tuning without paired data
 - **Reward Modeling** - Train reward models for RLHF
-- **PPO** (Proximal Policy Optimization) - Classic RLHF method
 
 **For detailed TRL method documentation:**
 ```python
@@ -32,7 +30,7 @@ hf_doc_fetch("https://huggingface.co/docs/trl/dpo_trainer")  # DPO
 
 Use this skill when users want to:
 - Fine-tune language models on cloud GPUs without local infrastructure
-- Train with TRL methods (SFT, DPO, GRPO, KTO, etc.)
+- Train with TRL methods (SFT, DPO, GRPO, etc.)
 - Run training jobs on Hugging Face Jobs infrastructure
 - Convert trained models to GGUF for local deployment (Ollama, LM Studio, llama.cpp)
 - Ensure trained models are permanently saved to the Hub
@@ -52,7 +50,7 @@ When assisting with training jobs:
 
 ## Local Script Dependencies
 
-To run scripts locally (like `validate_dataset.py`, `estimate_cost.py`), install dependencies:
+To run scripts locally (like `estimate_cost.py`), install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
@@ -63,7 +61,7 @@ Before starting any training job, verify:
 
 ### ✅ **Account & Authentication**
 - Hugging Face Account with [Pro](https://hf.co/pro), [Team](https://hf.co/enterprise), or [Enterprise](https://hf.co/enterprise) plan (Jobs require paid plan)
-- Authenticated login: Check with `mcp__huggingface__hf_whoami()`
+- Authenticated login: Check with `hf_whoami()`
 - **HF_TOKEN for Hub Push** ⚠️ CRITICAL - Training environment is ephemeral, must push to Hub or ALL training results are lost
 - Token must have write permissions and is automatically available as `$HF_TOKEN` in job secrets
 
@@ -389,6 +387,8 @@ hf_jobs("uv", {
 })
 ```
 
+The script is fast, and will usually complete synchronously.
+
 ### Reading Results
 
 The output shows compatibility for each training method:
@@ -490,15 +490,13 @@ See `references/training_patterns.md` for detailed examples including:
 ### Dataset Misformatted
 
 **Fix:**
-1. Validate first: `python scripts/validate_dataset.py --dataset name --method sft`
-2. Check required columns:
-   - SFT: `messages` OR `text` OR `prompt`+`completion`
-   - DPO: `prompt`, `chosen`, `rejected`
-   - GRPO: `prompt` only
-3. Apply formatting if needed:
-   ```python
-   dataset = dataset.map(lambda x: {"text": f"User: {x['input']}\nBot: {x['output']}"})
+1. Validate first with dataset inspector:
+   ```bash
+   uv run https://huggingface.co/datasets/mcp-tools/skills/raw/main/dataset_inspector.py \
+     --dataset name --split train
    ```
+2. Check output for compatibility markers (✓ READY, ✗ NEEDS MAPPING, ✗ INCOMPATIBLE)
+3. Apply mapping code from inspector output if needed
 
 ### Job Timeout
 
@@ -534,7 +532,7 @@ Add to PEP 723 header:
 - Job times out → Increase timeout, reduce epochs/dataset, use smaller model/LoRA
 - Model not saved to Hub → Check push_to_hub=True, hub_model_id, secrets=HF_TOKEN
 - Out of Memory (OOM) → Reduce batch size, increase gradient accumulation, enable LoRA, use larger GPU
-- Dataset format error → Check format docs, validate dataset with `scripts/validate_dataset.py`
+- Dataset format error → Validate with dataset inspector (see Dataset Validation section)
 - Import/module errors → Add PEP 723 header with dependencies, verify format
 - Authentication errors → Check `mcp__huggingface__hf_whoami()`, token permissions, secrets parameter
 
@@ -556,9 +554,11 @@ Add to PEP 723 header:
 - `scripts/train_sft_example.py` - Production SFT template
 - `scripts/train_dpo_example.py` - Production DPO template
 - `scripts/train_grpo_example.py` - Production GRPO template
-- `scripts/validate_dataset.py` - Validate dataset format before training
 - `scripts/estimate_cost.py` - Estimate time and cost (offer when appropriate)
 - `scripts/convert_to_gguf.py` - Complete GGUF conversion script
+
+### External Scripts
+- [Dataset Inspector](https://huggingface.co/datasets/mcp-tools/skills/raw/main/dataset_inspector.py) - Validate dataset format before training (use via `uv run` or `hf_jobs`)
 
 ### External Links
 - [TRL Documentation](https://huggingface.co/docs/trl)
@@ -578,6 +578,6 @@ Add to PEP 723 header:
 5. **Include Trackio** - Use example scripts as templates for real-time monitoring
 6. **Offer cost estimation** - When parameters are known, use `scripts/estimate_cost.py`
 7. **Three approaches available:** TRL Jobs package (easiest), UV scripts (custom, modern), TRL maintained scripts (official examples)
-8. **Use doc-fetch/doc-search** for latest TRL documentation
-9. **Validate dataset format** before training with `scripts/validate_dataset.py`
+8. **Use hf_doc_fetch/hf_doc_search** for latest TRL documentation
+9. **Validate dataset format** before training with dataset inspector (see Dataset Validation section)
 10. **Choose appropriate hardware** for model size; use LoRA for models >7B
