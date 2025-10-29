@@ -2,7 +2,7 @@
 
 After training models with TRL on Hugging Face Jobs, convert them to **GGUF format** for use with llama.cpp, Ollama, LM Studio, and other local inference tools.
 
-**This guide provides production-ready, tested code.** All required dependencies are included in the examples below. No additional troubleshooting should be needed when following the templates exactly.
+**This guide provides production-ready, tested code based on successful conversions.** All critical dependencies and build steps are included.
 
 ## What is GGUF?
 
@@ -21,146 +21,118 @@ After training models with TRL on Hugging Face Jobs, convert them to **GGUF form
 - Deploying to edge devices
 - Sharing models for local-first use
 
-## Conversion Process
+## Critical Success Factors
 
-**The conversion requires:**
-1. **Merge LoRA adapter** with base model (if using PEFT)
-2. **Convert to GGUF** format using llama.cpp
-3. **Quantize** to different bit depths (optional but recommended)
-4. **Upload** GGUF files to Hub
+Based on production testing, these are **essential** for reliable conversion:
 
-## GGUF Conversion Script Template
-
-See `scripts/convert_to_gguf.py` for a complete, production-ready conversion script.
-
-**Quick conversion job:**
-
+### 1. ✅ Install Build Tools FIRST
+**Before cloning llama.cpp**, install build dependencies:
 ```python
-hf_jobs("uv", {
-    "script": """
+subprocess.run(["apt-get", "update", "-qq"], check=True, capture_output=True)
+subprocess.run(["apt-get", "install", "-y", "-qq", "build-essential", "cmake"], check=True, capture_output=True)
+```
+
+**Why:** The quantization tool requires gcc and cmake. Installing after cloning doesn't help.
+
+### 2. ✅ Use CMake (Not Make)
+**Build the quantize tool with CMake:**
+```python
+# Create build directory
+os.makedirs("/tmp/llama.cpp/build", exist_ok=True)
+
+# Configure
+subprocess.run([
+    "cmake", "-B", "/tmp/llama.cpp/build", "-S", "/tmp/llama.cpp",
+    "-DGGML_CUDA=OFF"  # Faster build, CUDA not needed for quantization
+], check=True, capture_output=True, text=True)
+
+# Build
+subprocess.run([
+    "cmake", "--build", "/tmp/llama.cpp/build",
+    "--target", "llama-quantize", "-j", "4"
+], check=True, capture_output=True, text=True)
+
+# Binary path
+quantize_bin = "/tmp/llama.cpp/build/bin/llama-quantize"
+```
+
+**Why:** CMake is more reliable than `make` and produces consistent binary paths.
+
+### 3. ✅ Include All Dependencies
+**PEP 723 header must include:**
+```python
 # /// script
 # dependencies = [
 #     "transformers>=4.36.0",
 #     "peft>=0.7.0",
 #     "torch>=2.0.0",
+#     "accelerate>=0.24.0",
 #     "huggingface_hub>=0.20.0",
-#     "sentencepiece>=0.1.99",
-#     "protobuf>=3.20.0",
+#     "sentencepiece>=0.1.99",  # Required for tokenizer
+#     "protobuf>=3.20.0",        # Required for tokenizer
 #     "numpy",
 #     "gguf",
 # ]
 # ///
+```
 
-import os
-import torch
-import subprocess
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from peft import PeftModel
-from huggingface_hub import HfApi
+**Why:** `sentencepiece` and `protobuf` are critical for tokenizer conversion. Missing them causes silent failures.
 
-# Configuration from environment
-ADAPTER_MODEL = os.environ.get("ADAPTER_MODEL", "username/my-model")
-BASE_MODEL = os.environ.get("BASE_MODEL", "Qwen/Qwen2.5-0.5B")
-OUTPUT_REPO = os.environ.get("OUTPUT_REPO", "username/my-model-gguf")
+### 4. ✅ Verify Names Before Use
+**Always verify repos exist:**
+```python
+# Before submitting job, verify:
+hub_repo_details([ADAPTER_MODEL], repo_type="model")
+hub_repo_details([BASE_MODEL], repo_type="model")
+```
 
-print("🔄 Converting to GGUF...")
+**Why:** Non-existent dataset/model names cause job failures that could be caught in seconds.
 
-# Step 1: Load and merge
-print("Loading base model...")
-base = AutoModelForCausalLM.from_pretrained(
-    BASE_MODEL,
-    dtype=torch.float16,
-    device_map="auto",
-    trust_remote_code=True
-)
+## Complete Conversion Script
 
-print("Loading adapter...")
-model = PeftModel.from_pretrained(base, ADAPTER_MODEL)
+See `scripts/convert_to_gguf.py` for the complete, production-ready script.
 
-print("Merging...")
-merged = model.merge_and_unload()
+**Key features:**
+- ✅ All dependencies in PEP 723 header
+- ✅ Build tools installed automatically
+- ✅ CMake build process (reliable)
+- ✅ Comprehensive error handling
+- ✅ Environment variable configuration
+- ✅ Automatic README generation
 
-# Save merged model
-merged_dir = "/tmp/merged"
-merged.save_pretrained(merged_dir, safe_serialization=True)
-tokenizer = AutoTokenizer.from_pretrained(ADAPTER_MODEL)
-tokenizer.save_pretrained(merged_dir)
+## Quick Conversion Job
 
-# Step 2: Install build tools and clone llama.cpp
-print("Setting up llama.cpp...")
-subprocess.run(["apt-get", "update", "-qq"], check=True, capture_output=True)
-subprocess.run(["apt-get", "install", "-y", "-qq", "build-essential", "cmake"], check=True, capture_output=True)
+```python
+# Before submitting: VERIFY MODELS EXIST
+hub_repo_details(["username/my-finetuned-model"], repo_type="model")
+hub_repo_details(["Qwen/Qwen2.5-0.5B"], repo_type="model")
 
-subprocess.run([
-    "git", "clone",
-    "https://github.com/ggerganov/llama.cpp.git",
-    "/tmp/llama.cpp"
-], check=True)
-
-subprocess.run([
-    "pip", "install", "-r",
-    "/tmp/llama.cpp/requirements.txt"
-], check=True)
-
-# Convert to GGUF
-print("Converting to GGUF...")
-subprocess.run([
-    "python", "/tmp/llama.cpp/convert_hf_to_gguf.py",
-    merged_dir,
-    "--outfile", "/tmp/model-f16.gguf",
-    "--outtype", "f16"
-], check=True)
-
-# Step 3: Build quantization tool with CMake
-print("Building quantization tool...")
-os.makedirs("/tmp/llama.cpp/build", exist_ok=True)
-
-subprocess.run([
-    "cmake", "-B", "/tmp/llama.cpp/build", "-S", "/tmp/llama.cpp",
-    "-DGGML_CUDA=OFF"
-], check=True)
-
-subprocess.run([
-    "cmake", "--build", "/tmp/llama.cpp/build",
-    "--target", "llama-quantize", "-j", "4"
-], check=True)
-
-quantize = "/tmp/llama.cpp/build/bin/llama-quantize"
-quants = ["Q4_K_M", "Q5_K_M", "Q8_0"]
-
-for q in quants:
-    print(f"Creating {q} quantization...")
-    subprocess.run([
-        quantize,
-        "/tmp/model-f16.gguf",
-        f"/tmp/model-{q.lower()}.gguf",
-        q
-    ], check=True)
-
-# Step 4: Upload
-print("Uploading to Hub...")
-api = HfApi()
-api.create_repo(OUTPUT_REPO, repo_type="model", exist_ok=True)
-
-for q in ["f16"] + [q.lower() for q in quants]:
-    api.upload_file(
-        path_or_fileobj=f"/tmp/model-{q}.gguf",
-        path_in_repo=f"model-{q}.gguf",
-        repo_id=OUTPUT_REPO
-    )
-
-print(f"✅ Done! Models at: https://huggingface.co/{OUTPUT_REPO}")
-""",
+# Submit conversion job
+hf_jobs("uv", {
+    "script": open("trl/scripts/convert_to_gguf.py").read(),  # Or inline the script
     "flavor": "a10g-large",
     "timeout": "45m",
     "secrets": {"HF_TOKEN": "$HF_TOKEN"},
     "env": {
         "ADAPTER_MODEL": "username/my-finetuned-model",
         "BASE_MODEL": "Qwen/Qwen2.5-0.5B",
-        "OUTPUT_REPO": "username/my-model-gguf"
+        "OUTPUT_REPO": "username/my-model-gguf",
+        "HF_USERNAME": "username"  # Optional, for README
     }
 })
 ```
+
+## Conversion Process
+
+The script performs these steps:
+
+1. **Load and Merge** - Load base model and LoRA adapter, merge them
+2. **Install Build Tools** - Install gcc, cmake (CRITICAL: before cloning llama.cpp)
+3. **Setup llama.cpp** - Clone repo, install Python dependencies
+4. **Convert to GGUF** - Create FP16 GGUF using llama.cpp converter
+5. **Build Quantize Tool** - Use CMake to build `llama-quantize`
+6. **Quantize** - Create Q4_K_M, Q5_K_M, Q8_0 versions
+7. **Upload** - Upload all versions + README to Hub
 
 ## Quantization Options
 
@@ -191,7 +163,7 @@ Common quantization formats (from smallest to largest):
 
 **GGUF models work on both CPU and GPU.** They're optimized for CPU inference but can also leverage GPU acceleration when available.
 
-**With Ollama (auto-detects GPU):**
+### With Ollama (auto-detects GPU)
 ```bash
 # Download GGUF
 huggingface-cli download username/my-model-gguf model-q4_k_m.gguf
@@ -204,7 +176,7 @@ ollama create my-model -f Modelfile
 ollama run my-model
 ```
 
-**With llama.cpp:**
+### With llama.cpp
 ```bash
 # CPU only
 ./llama-cli -m model-q4_k_m.gguf -p "Your prompt"
@@ -213,45 +185,112 @@ ollama run my-model
 ./llama-cli -m model-q4_k_m.gguf -ngl 32 -p "Your prompt"
 ```
 
-**With LM Studio:**
+### With LM Studio
 1. Download the `.gguf` file
 2. Import into LM Studio
 3. Start chatting
 
 ## Best Practices
 
-1. **Always create multiple quantizations** - Give users choice of size/quality
-2. **Include README** - Document which quantization to use for what purpose
-3. **Test the GGUF** - Run a quick inference test before uploading
-4. **Use A10G GPU** - Much faster than CPU for loading/merging large models
-5. **Clean up temp files** - Conversion creates large intermediate files
+### ✅ DO:
+1. **Verify repos exist** before submitting jobs (use `hub_repo_details`)
+2. **Install build tools FIRST** before cloning llama.cpp
+3. **Use CMake** for building quantize tool (not make)
+4. **Include all dependencies** in PEP 723 header (especially sentencepiece, protobuf)
+5. **Create multiple quantizations** - Give users choice
+6. **Test on known models** before production use
+7. **Use A10G GPU** for faster conversion
+
+### ❌ DON'T:
+1. **Assume repos exist** - Always verify with hub tools
+2. **Use make** instead of CMake - Less reliable
+3. **Remove dependencies** to "simplify" - They're all needed
+4. **Skip build tools** - Quantization will fail silently
+5. **Use default paths** - CMake puts binaries in build/bin/
 
 ## Common Issues
 
-**Out of memory during merge:**
+### Out of memory during merge
+**Fix:**
 - Use larger GPU (a10g-large or a100-large)
-- Load with `device_map="auto"` for automatic device placement
-- Use `dtype=torch.float16` or `torch.bfloat16` instead of float32
+- Ensure `device_map="auto"` for automatic placement
+- Use `dtype=torch.float16` or `torch.bfloat16`
 
-**Conversion fails with architecture error:**
+### Conversion fails with architecture error
+**Fix:**
 - Ensure llama.cpp supports the model architecture
-- Check that model uses standard architecture (Qwen, Llama, Mistral, etc.)
-- Some newer models require latest llama.cpp from main branch
-- Check llama.cpp issues/docs for model support
+- Check for standard architecture (Qwen, Llama, Mistral, etc.)
+- Update llama.cpp to latest: `git clone --depth 1 https://github.com/ggerganov/llama.cpp.git`
+- Check llama.cpp documentation for model support
 
-**GGUF file doesn't work with llama.cpp:**
-- Verify llama.cpp version compatibility
-- Download latest llama.cpp: `git clone https://github.com/ggerganov/llama.cpp.git`
-- Rebuild llama.cpp after updating: `make clean && make`
+### Quantization fails
+**Fix:**
+- Verify build tools installed: `apt-get install build-essential cmake`
+- Use CMake (not make) to build quantize tool
+- Check binary path: `/tmp/llama.cpp/build/bin/llama-quantize`
+- Verify FP16 GGUF exists before quantizing
 
-**Quantization fails:**
-- Ensure the `llama-quantize` tool was built: `make llama-quantize`
-- Check that FP16 GGUF was created successfully before quantizing
-- Some quantization types require specific llama.cpp versions
+### Missing sentencepiece error
+**Fix:**
+- Add to PEP 723 header: `"sentencepiece>=0.1.99", "protobuf>=3.20.0"`
+- Don't remove dependencies to "simplify" - all are required
 
-**Upload fails or times out:**
-- Large models (>2GB) may need longer timeout
-- Use `api.upload_file()` with `commit_message` for better tracking
-- Consider uploading quantized versions separately
+### Upload fails or times out
+**Fix:**
+- Large models (>2GB) need longer timeout: `"timeout": "1h"`
+- Upload quantized versions separately if needed
+- Check network/Hub status
 
-**See:** `scripts/convert_to_gguf.py` for complete, production-ready conversion script with all dependencies included.
+## Lessons Learned
+
+These are from production testing and real failures:
+
+### 1. Always Verify Before Use
+**Lesson:** Don't assume repos/datasets exist. Check first.
+```python
+# BEFORE submitting job
+hub_repo_details(["trl-lib/argilla-dpo-mix-7k"], repo_type="dataset")  # Would catch error
+```
+**Prevented failures:** Non-existent dataset names, typos in model names
+
+### 2. Prioritize Reliability Over Performance
+**Lesson:** Default to what's most likely to succeed.
+- Use CMake (not make) - more reliable
+- Disable CUDA in build - faster, not needed
+- Include all dependencies - don't "simplify"
+
+**Prevented failures:** Build failures, missing binaries
+
+### 3. Create Atomic, Self-Contained Scripts
+**Lesson:** Don't remove dependencies or steps. Scripts should work as a unit.
+- All dependencies in PEP 723 header
+- All build steps included
+- Clear error messages
+
+**Prevented failures:** Missing tokenizer libraries, build tool failures
+
+## References
+
+**In this skill:**
+- `scripts/convert_to_gguf.py` - Complete, production-ready script
+
+**External:**
+- [llama.cpp Repository](https://github.com/ggerganov/llama.cpp)
+- [GGUF Specification](https://github.com/ggerganov/ggml/blob/master/docs/gguf.md)
+- [Ollama Documentation](https://ollama.ai)
+- [LM Studio](https://lmstudio.ai)
+
+## Summary
+
+**Critical checklist for GGUF conversion:**
+- [ ] Verify adapter and base models exist on Hub
+- [ ] Use production script from `scripts/convert_to_gguf.py`
+- [ ] All dependencies in PEP 723 header (including sentencepiece, protobuf)
+- [ ] Build tools installed before cloning llama.cpp
+- [ ] CMake used for building quantize tool (not make)
+- [ ] Correct binary path: `/tmp/llama.cpp/build/bin/llama-quantize`
+- [ ] A10G GPU selected for reasonable conversion time
+- [ ] Timeout set to 45m minimum
+- [ ] HF_TOKEN in secrets for Hub upload
+
+**The script in `scripts/convert_to_gguf.py` incorporates all these lessons and has been tested successfully in production.**
