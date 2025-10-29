@@ -94,19 +94,6 @@ hf_jobs("uv", {
 
 **Documentation:** `hf_doc_fetch("https://huggingface.co/docs/trl/grpo_trainer")`
 
-## Kahneman-Tversky Optimization (KTO)
-
-**What it is:** Preference tuning without paired data - uses independent positive/negative examples.
-
-**When to use:**
-- Have preference data but not paired comparisons
-- Simpler data collection than DPO
-- Want to incorporate human feedback without explicit pairs
-
-**Dataset format:** Examples with binary labels (desirable/undesirable) but not paired
-
-**Documentation:** `hf_doc_fetch("https://huggingface.co/docs/trl/kto_trainer")`
-
 ## Reward Modeling
 
 **What it is:** Train a reward model to score responses, used as a component in RLHF pipelines.
@@ -120,21 +107,6 @@ hf_jobs("uv", {
 
 **Documentation:** `hf_doc_fetch("https://huggingface.co/docs/trl/reward_trainer")`
 
-## Proximal Policy Optimization (PPO)
-
-**What it is:** Classic RLHF method using a reward model to guide policy optimization.
-
-**When to use:**
-- Full RLHF pipeline
-- Have trained reward model
-- Need fine-grained control over optimization
-
-**Requirements:** Pre-trained reward model
-
-**Note:** PPO is more complex than DPO. For most use cases, start with DPO.
-
-**Documentation:** `hf_doc_fetch("https://huggingface.co/docs/trl/ppo_trainer")`
-
 ## Method Selection Guide
 
 | Method | Complexity | Data Required | Use Case |
@@ -142,9 +114,7 @@ hf_jobs("uv", {
 | **SFT** | Low | Demonstrations | Initial fine-tuning |
 | **DPO** | Medium | Paired preferences | Post-SFT alignment |
 | **GRPO** | Medium | Prompts + reward fn | Online RL with automatic rewards |
-| **KTO** | Medium | Unpaired preferences | Alignment with simpler data |
 | **Reward** | Medium | Paired preferences | Building RLHF pipeline |
-| **PPO** | High | Demonstrations + reward model | Full RLHF |
 
 ## Recommended Pipeline
 
@@ -156,7 +126,6 @@ hf_jobs("uv", {
 **For advanced RL scenarios:**
 1. **Start with SFT** - Fine-tune base model
 2. **Train reward model** - On preference data
-3. **Apply GRPO or PPO** - Online RL with reward model
 
 ## Dataset Format Reference
 

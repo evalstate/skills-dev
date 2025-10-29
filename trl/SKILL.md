@@ -193,7 +193,7 @@ TRL provides battle-tested scripts for all methods. Can be run from URLs:
 
 ```python
 hf_jobs("uv", {
-    "script": "https://raw.githubusercontent.com/huggingface/trl/main/examples/scripts/sft.py",
+    "script": "https://github.com/huggingface/trl/blob/main/trl/scripts/sft.py",
     "script_args": [
         "--model_name_or_path", "Qwen/Qwen2.5-0.5B",
         "--dataset_name", "trl-lib/Capybara",
@@ -209,7 +209,7 @@ hf_jobs("uv", {
 
 **Benefits:** No code to write, maintained by TRL team, production-tested
 **When to use:** Standard TRL training, quick experiments, don't need custom code
-**Available:** sft.py, dpo.py, grpo.py, kto.py, reward.py, ppo.py - https://github.com/huggingface/trl/tree/main/examples/scripts
+**Available:** Scripts are available from https://github.com/huggingface/trl/tree/main/examples/scripts
 
 ### Finding More UV Scripts on Hub
 
