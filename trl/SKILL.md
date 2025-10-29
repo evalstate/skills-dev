@@ -42,13 +42,20 @@ Use this skill when users want to:
 
 When assisting with training jobs:
 
-1. **Submit jobs directly with inline scripts** - The `script` parameter accepts Python code directly. Do NOT save to local files unless the user explicitly requests it. Pass the script content as a string to `hf_jobs()`.
+1. **Submit jobs directly with inline scripts** - The `script` parameter accepts Python code directly. Do NOT save to local files unless the user explicitly requests it. Pass the script content as a string to `hf_jobs()`. If user asks to "train a model", "fine-tune", or similar requests, you MUST create the training script AND submit the job immediately.
 
 2. **Always include Trackio** - Every training script should include Trackio for real-time monitoring. Use example scripts in `scripts/` as templates.
 
 3. **Provide job details after submission** - After submitting, provide job ID, monitoring URL, estimated time, and note that the user can request status checks later.
 
 4. **Use example scripts as templates** - Reference `scripts/train_sft_example.py`, `scripts/train_dpo_example.py`, etc. as starting points.
+
+## Local Script Dependencies
+
+To run scripts locally (like `validate_dataset.py`, `estimate_cost.py`), install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
 ## Prerequisites Checklist
 
@@ -149,15 +156,21 @@ trackio.init(project="my-training", space_id="username/my-dashboard")
 
 dataset = load_dataset("trl-lib/Capybara", split="train")
 
+# Create train/eval split for monitoring
+dataset_split = dataset.train_test_split(test_size=0.1, seed=42)
+
 trainer = SFTTrainer(
     model="Qwen/Qwen2.5-0.5B",
-    train_dataset=dataset,
+    train_dataset=dataset_split["train"],
+    eval_dataset=dataset_split["test"],
     peft_config=LoraConfig(r=16, lora_alpha=32),
     args=SFTConfig(
         output_dir="my-model",
         push_to_hub=True,
         hub_model_id="username/my-model",
         num_train_epochs=3,
+        eval_strategy="steps",
+        eval_steps=50,
         report_to="trackio",
     )
 )
@@ -387,6 +400,56 @@ See `references/training_patterns.md` for detailed examples including:
 - Multi-GPU training
 - DPO training (preference learning)
 - GRPO training (online RL)
+
+## Common Failure Modes
+
+### Out of Memory (OOM)
+
+**Fix (try in order):**
+1. Reduce batch size: `per_device_train_batch_size=1`, increase `gradient_accumulation_steps=8`. Effective batch size is `per_device_train_batch_size` x `gradient_accumulation_steps`. For best performance keep effective batch size close to 128. 
+2. Enable: `gradient_checkpointing=True`
+3. Upgrade hardware: t4-small → l4x1, a10g-small → a10g-large etc. 
+
+### Dataset Misformatted
+
+**Fix:**
+1. Validate first: `python scripts/validate_dataset.py --dataset name --method sft`
+2. Check required columns:
+   - SFT: `messages` OR `text` OR `prompt`+`completion`
+   - DPO: `prompt`, `chosen`, `rejected`
+   - GRPO: `prompt` only
+3. Apply formatting if needed:
+   ```python
+   dataset = dataset.map(lambda x: {"text": f"User: {x['input']}\nBot: {x['output']}"})
+   ```
+
+### Job Timeout
+
+**Fix:**
+1. Check logs for actual runtime: `hf_jobs("logs", {"job_id": "..."})`
+2. Increase timeout with buffer: `"timeout": "3h"` (add 30% to estimated time)
+3. Or reduce training: lower `num_train_epochs`, use smaller dataset, enable `max_steps`
+4. Save checkpoints: `save_strategy="steps"`, `save_steps=500`, `hub_strategy="every_save"`
+
+**Note:** Default 30min is insufficient for real training. Minimum 1-2 hours.
+
+### Hub Push Failures
+
+**Fix:**
+1. Add to job: `secrets={"HF_TOKEN": "$HF_TOKEN"}`
+2. Add to config: `push_to_hub=True`, `hub_model_id="username/model-name"`
+3. Verify auth: `mcp__huggingface__hf_whoami()`
+4. Check token has write permissions and repo exists (or set `hub_private_repo=True`)
+
+### Missing Dependencies
+
+**Fix:**
+Add to PEP 723 header:
+```python
+# /// script
+# dependencies = ["trl>=0.12.0", "peft>=0.7.0", "trackio", "missing-package"]
+# ///
+```
 
 ## Troubleshooting
 
