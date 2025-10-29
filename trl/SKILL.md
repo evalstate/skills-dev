@@ -116,6 +116,8 @@ The job is running in the background. Ask me to check status/logs when ready!
 
 ## Quick Start: Three Approaches
 
+**💡 Tip for Demos:** For quick demos on smaller GPUs (t4-small), omit `eval_dataset` and `eval_strategy` to save ~40% memory. You'll still see training loss and learning progress.
+
 ### Approach 1: UV Scripts (Recommended—Default Choice)
 
 UV scripts use PEP 723 inline dependencies for clean, self-contained training. **This is the primary approach for Claude Code.**
@@ -270,7 +272,7 @@ trl-jobs sft \
 
 | Model Size | Recommended Hardware | Cost (approx/hr) | Use Case |
 |------------|---------------------|------------------|----------|
-| <1B params | `t4-small` | ~$0.75 | Demos, quick tests |
+| <1B params | `t4-small` | ~$0.75 | Demos, quick tests only |
 | 1-3B params | `t4-medium`, `l4x1` | ~$1.50-2.50 | Development |
 | 3-7B params | `a10g-small`, `a10g-large` | ~$3.50-5.00 | Production training |
 | 7-13B params | `a10g-large`, `a100-large` | ~$5-10 | Large models (use LoRA) |

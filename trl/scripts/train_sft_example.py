@@ -62,6 +62,9 @@ eval_dataset = dataset_split["test"]
 print(f"   Train: {len(train_dataset)} examples")
 print(f"   Eval: {len(eval_dataset)} examples")
 
+# Note: For memory-constrained demos, skip eval by using full dataset as train_dataset
+# and removing eval_dataset, eval_strategy, and eval_steps from config below
+
 # Training configuration
 config = SFTConfig(
     # CRITICAL: Hub settings

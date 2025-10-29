@@ -81,10 +81,11 @@ trainer = SFTTrainer(
 **Solutions (in order of preference):**
 1. **Reduce batch size:** Lower `per_device_train_batch_size` (try 4 → 2 → 1)
 2. **Increase gradient accumulation:** Raise `gradient_accumulation_steps` to maintain effective batch size
-3. **Enable LoRA/PEFT:** Use `peft_config=LoraConfig(r=16, lora_alpha=32)` to train adapters only
-4. **Use larger GPU:** Switch from `t4-medium` → `a10g-large` → `a100-large`
-5. **Enable gradient checkpointing:** Set `gradient_checkpointing=True` in config (slower but saves memory)
-6. **Use smaller model:** Try a smaller variant (e.g., 0.5B instead of 3B)
+3. **Disable evaluation:** Remove `eval_dataset` and `eval_strategy` (saves ~40% memory, good for demos)
+4. **Enable LoRA/PEFT:** Use `peft_config=LoraConfig(r=8, lora_alpha=16)` to train adapters only (smaller rank = less memory)
+5. **Use larger GPU:** Switch from `t4-small` → `l4x1` → `a10g-large` → `a100-large`
+6. **Enable gradient checkpointing:** Set `gradient_checkpointing=True` in config (slower but saves memory)
+7. **Use smaller model:** Try a smaller variant (e.g., 0.5B instead of 3B)
 
 **Memory guidelines:**
 - T4 (16GB): <1B models with LoRA
