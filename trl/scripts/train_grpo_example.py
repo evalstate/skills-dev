@@ -36,7 +36,7 @@ from trl import GRPOTrainer, GRPOConfig
 # Initialize Trackio for real-time monitoring
 trackio.init(
     project="qwen-grpo-math",
-    space_id="username/my-trackio-dashboard",
+    space_id="username/trackio",
     config={
         "model": "Qwen/Qwen2.5-0.5B-Instruct",
         "dataset": "trl-lib/math_shepherd",
@@ -94,4 +94,4 @@ trainer.push_to_hub()
 trackio.finish()
 
 print("✅ Complete! Model at: https://huggingface.co/username/qwen-grpo-math")
-print("📊 View metrics at: https://huggingface.co/spaces/username/my-trackio-dashboard")
+print("📊 View metrics at: https://huggingface.co/spaces/username/trackio")

@@ -39,7 +39,7 @@ from datasets import load_dataset
 from trl import DPOTrainer, DPOConfig
 import trackio
 
-trackio.init(project="dpo-training", space_id="username/my-dashboard")
+trackio.init(project="dpo-training", space_id="username/trackio")
 
 dataset = load_dataset("trl-lib/ultrafeedback_binarized", split="train")
 

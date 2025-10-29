@@ -1,11 +1,12 @@
 # Trackio Integration for TRL Training
 
-**Trackio** is a local-first experiment tracking library that provides real-time metrics visualization via a Gradio dashboard.
+**Trackio** is an experiment tracking library that provides real-time metrics visualization for remote training on Hugging Face Jobs infrastructure.
 
-⚠️ **IMPORTANT**: Trackio is local-first, which means:
-- It runs a dashboard on the machine where training happens
-- For Jobs training, sync to a Hugging Face Space to view metrics
-- Without a Space, metrics are only accessible during the job (then lost)
+⚠️ **IMPORTANT**: For Jobs training (remote cloud GPUs):
+- Training happens on ephemeral cloud runners (not your local machine)
+- Trackio syncs metrics to a Hugging Face Space for real-time monitoring
+- Without a Space, metrics are lost when the job completes
+- The Space dashboard persists your training metrics permanently
 
 ## Setting Up Trackio for Jobs
 
@@ -35,7 +36,7 @@ import trackio
 
 trackio.init(
     project="my-training",
-    space_id="username/my-trackio-dashboard",  # CRITICAL for Jobs!
+    space_id="username/trackio",  # CRITICAL for Jobs! Replace 'username' with your HF username
     config={
         "model": "Qwen/Qwen2.5-0.5B",
         "dataset": "trl-lib/Capybara",
@@ -78,23 +79,11 @@ Trackio automatically logs:
 ## Viewing the Dashboard
 
 After starting training:
-1. Navigate to the Space: `https://huggingface.co/spaces/username/my-trackio-dashboard`
+1. Navigate to the Space: `https://huggingface.co/spaces/username/trackio`
 2. The Gradio dashboard shows all tracked experiments
 3. Filter by project, compare runs, view charts with smoothing
-
-## Alternative: TensorBoard (Simpler for Jobs)
-
-For simpler setup without needing a Space:
-```python
-SFTConfig(
-    report_to="tensorboard",  # Logs saved with model to Hub
-)
-```
-
-TensorBoard logs are automatically saved with the model and viewable via TensorBoard locally after downloading.
 
 ## Recommendation
 
 - **Trackio**: Best for real-time monitoring during long training runs
-- **TensorBoard**: Best for post-training analysis, simpler setup
 - **Weights & Biases**: Best for team collaboration, requires account

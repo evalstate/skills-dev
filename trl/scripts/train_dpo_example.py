@@ -32,7 +32,7 @@ from trl import DPOTrainer, DPOConfig
 # Initialize Trackio for real-time monitoring
 trackio.init(
     project="qwen-dpo-alignment",
-    space_id="username/my-trackio-dashboard",
+    space_id="username/trackio",
     config={
         "model": "Qwen/Qwen2.5-0.5B-Instruct",
         "dataset": "trl-lib/ultrafeedback_binarized",
@@ -110,4 +110,4 @@ trainer.push_to_hub()
 trackio.finish()
 
 print("✅ Complete! Model at: https://huggingface.co/username/qwen-dpo-aligned")
-print("📊 View metrics at: https://huggingface.co/spaces/username/my-trackio-dashboard")
+print("📊 View metrics at: https://huggingface.co/spaces/username/trackio")

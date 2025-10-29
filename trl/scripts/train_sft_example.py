@@ -39,7 +39,7 @@ from trl import SFTTrainer, SFTConfig
 # Initialize Trackio for real-time monitoring
 trackio.init(
     project="qwen-capybara-sft",
-    space_id="username/my-trackio-dashboard",  # Creates Space if it doesn't exist
+    space_id="username/trackio",  # Creates Space if it doesn't exist
     config={
         "model": "Qwen/Qwen2.5-0.5B",
         "dataset": "trl-lib/Capybara",
@@ -124,4 +124,4 @@ trainer.push_to_hub()
 trackio.finish()
 
 print("✅ Complete! Model at: https://huggingface.co/username/qwen-capybara-sft")
-print("📊 View metrics at: https://huggingface.co/spaces/username/my-trackio-dashboard")
+print("📊 View metrics at: https://huggingface.co/spaces/username/trackio")
