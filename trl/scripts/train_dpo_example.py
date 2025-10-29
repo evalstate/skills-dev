@@ -43,8 +43,17 @@ trackio.init(
 )
 
 # Load preference dataset
+print("📦 Loading dataset...")
 dataset = load_dataset("trl-lib/ultrafeedback_binarized", split="train")
 print(f"✅ Dataset loaded: {len(dataset)} preference pairs")
+
+# Create train/eval split
+print("🔀 Creating train/eval split...")
+dataset_split = dataset.train_test_split(test_size=0.1, seed=42)
+train_dataset = dataset_split["train"]
+eval_dataset = dataset_split["test"]
+print(f"   Train: {len(train_dataset)} pairs")
+print(f"   Eval: {len(eval_dataset)} pairs")
 
 # Training configuration
 config = DPOConfig(
@@ -69,6 +78,10 @@ config = DPOConfig(
     save_steps=100,
     save_total_limit=2,
 
+    # Evaluation - IMPORTANT: Only enable if eval_dataset provided
+    eval_strategy="steps",
+    eval_steps=100,
+
     # Optimization
     warmup_ratio=0.1,
     lr_scheduler_type="cosine",
@@ -79,9 +92,11 @@ config = DPOConfig(
 
 # Initialize and train
 # Note: DPO requires an instruct-tuned model as the base
+print("🎯 Initializing trainer...")
 trainer = DPOTrainer(
     model="Qwen/Qwen2.5-0.5B-Instruct",  # Use instruct model, not base model
-    train_dataset=dataset,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,  # CRITICAL: Must provide eval_dataset when eval_strategy is enabled
     args=config,
 )
 

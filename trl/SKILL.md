@@ -156,15 +156,21 @@ trackio.init(project="my-training", space_id="username/my-dashboard")
 
 dataset = load_dataset("trl-lib/Capybara", split="train")
 
+# Create train/eval split for monitoring
+dataset_split = dataset.train_test_split(test_size=0.1, seed=42)
+
 trainer = SFTTrainer(
     model="Qwen/Qwen2.5-0.5B",
-    train_dataset=dataset,
+    train_dataset=dataset_split["train"],
+    eval_dataset=dataset_split["test"],
     peft_config=LoraConfig(r=16, lora_alpha=32),
     args=SFTConfig(
         output_dir="my-model",
         push_to_hub=True,
         hub_model_id="username/my-model",
         num_train_epochs=3,
+        eval_strategy="steps",
+        eval_steps=50,
         report_to="trackio",
     )
 )

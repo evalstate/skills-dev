@@ -2,6 +2,49 @@
 
 Common issues and solutions when training with TRL on Hugging Face Jobs.
 
+## Training Hangs at "Starting training..." Step
+
+**Problem:** Job starts but hangs at the training step - never progresses, never times out, just sits there.
+
+**Root Cause:** Using `eval_strategy="steps"` or `eval_strategy="epoch"` without providing an `eval_dataset` to the trainer.
+
+**Solution:**
+
+**Option A: Provide eval_dataset (recommended)**
+```python
+# Create train/eval split
+dataset_split = dataset.train_test_split(test_size=0.1, seed=42)
+
+trainer = SFTTrainer(
+    model="Qwen/Qwen2.5-0.5B",
+    train_dataset=dataset_split["train"],
+    eval_dataset=dataset_split["test"],  # ← MUST provide when eval_strategy is enabled
+    args=SFTConfig(
+        eval_strategy="steps",
+        eval_steps=50,
+        ...
+    ),
+)
+```
+
+**Option B: Disable evaluation**
+```python
+trainer = SFTTrainer(
+    model="Qwen/Qwen2.5-0.5B",
+    train_dataset=dataset,
+    # No eval_dataset
+    args=SFTConfig(
+        eval_strategy="no",  # ← Explicitly disable
+        ...
+    ),
+)
+```
+
+**Prevention:**
+- Always create train/eval split for better monitoring
+- Use `dataset.train_test_split(test_size=0.1, seed=42)`
+- Check example scripts: `scripts/train_sft_example.py` includes proper eval setup
+
 ## Job Times Out
 
 **Problem:** Job terminates before training completes, all progress lost.
@@ -208,5 +251,6 @@ If issues persist:
    - `references/hub_saving.md` - Hub authentication issues
    - `references/hardware_guide.md` - Hardware selection and specs
    - `references/uv_scripts_guide.md` - UV script format issues
+   - `references/training_patterns.md` - Eval dataset requirements
 
 4. **Ask in HF forums:** https://discuss.huggingface.co/
