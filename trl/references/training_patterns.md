@@ -98,6 +98,56 @@ hf_jobs("uv", {
 
 **For GRPO documentation:** Use `hf_doc_fetch("https://huggingface.co/docs/trl/grpo_trainer")`
 
+## Trackio Configuration
+
+**Use sensible defaults for trackio setup.** See `references/trackio_guide.md` for complete documentation including grouping runs for experiments.
+
+### Basic Pattern
+
+```python
+import trackio
+
+trackio.init(
+    project="my-training",
+    name="baseline-run",             # Descriptive name user will recognize
+    space_id="username/trackio",     # Default space: {username}/trackio
+    config={
+        # Keep config minimal - hyperparameters and model/dataset info only
+        "model": "Qwen/Qwen2.5-0.5B",
+        "dataset": "trl-lib/Capybara",
+        "learning_rate": 2e-5,
+    }
+)
+
+# Your training code...
+
+trackio.finish()
+```
+
+### Using Environment Variables
+
+Pass trackio configuration via job `env` parameter for managing multiple jobs with same settings:
+
+```python
+hf_jobs("uv", {
+    "script": "...",
+    "env": {
+        "TRACKIO_PROJECT_NAME": "my-training",
+        "TRACKIO_SPACE_ID": "username/trackio"
+    }
+})
+```
+
+### Grouping for Experiments (Optional)
+
+When user wants to compare related runs, use the `group` parameter:
+
+```python
+# Hyperparameter sweep
+trackio.init(project="hyperparam-sweep", name="lr-0.001", group="lr_0.001")
+trackio.init(project="hyperparam-sweep", name="lr-0.01", group="lr_0.01")
+```
+
 ## Pattern Selection Guide
 
 | Use Case | Pattern | Hardware | Time |

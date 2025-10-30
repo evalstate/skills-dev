@@ -32,8 +32,10 @@ from trl import DPOTrainer, DPOConfig
 # Initialize Trackio for real-time monitoring
 trackio.init(
     project="qwen-dpo-alignment",
-    space_id="username/trackio",
+    name="preference-alignment",  # Descriptive name for this training run
+    space_id="username/trackio",  # Default space: {username}/trackio
     config={
+        # Keep config minimal - hyperparameters and model/dataset info only
         "model": "Qwen/Qwen2.5-0.5B-Instruct",
         "dataset": "trl-lib/ultrafeedback_binarized",
         "method": "DPO",

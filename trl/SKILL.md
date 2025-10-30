@@ -385,6 +385,42 @@ These scripts demonstrate proper Hub saving, Trackio integration, checkpoint man
 
 **Alternative:** Use `report_to="tensorboard"` for simpler setup (logs saved with model to Hub)
 
+### Trackio Configuration Defaults
+
+**Use sensible defaults unless user specifies otherwise.** When generating training scripts with Trackio:
+
+**Default Configuration:**
+- **Space ID**: `{username}/trackio` (use "trackio" as default space name)
+- **Run naming**: Unless otherwise specified, name the run in a way the user will recognize (e.g., descriptive of the task, model, or purpose)
+- **Config**: Keep minimal - only include hyperparameters and model/dataset info
+
+**Example with defaults:**
+```python
+import trackio
+
+trackio.init(
+    project="qwen-capybara-sft",
+    name="baseline-run",              # Descriptive name user will recognize
+    space_id="username/trackio",      # Default space: {username}/trackio
+    config={
+        "model": "Qwen/Qwen2.5-0.5B",
+        "dataset": "trl-lib/Capybara",
+        "learning_rate": 2e-5,
+        "num_epochs": 3,
+    }
+)
+```
+
+**User overrides:** If user requests specific trackio configuration (custom space, run naming, grouping, or additional config), apply their preferences instead of defaults.
+
+**Environment variables:** Configuration can be passed via environment variables in the job's `env` parameter:
+- `TRACKIO_PROJECT_NAME` - Set project name via environment instead of parameter
+- `TRACKIO_SPACE_ID` - Set space ID via environment instead of parameter
+
+This is useful for managing multiple jobs with the same configuration or keeping training scripts portable.
+
+See `references/trackio_guide.md` for complete documentation including grouping runs for experiments.
+
 ### Check Job Status
 
 ```python

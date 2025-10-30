@@ -76,6 +76,144 @@ Trackio automatically logs:
 3. **Space dashboard** → Reads from Dataset, displays metrics in real-time
 4. **Job completes** → Final sync ensures all metrics persisted
 
+## Default Configuration Pattern
+
+**Use sensible defaults for trackio configuration unless user requests otherwise.**
+
+### Recommended Defaults
+
+```python
+import trackio
+
+trackio.init(
+    project="qwen-capybara-sft",
+    name="baseline-run",             # Descriptive name user will recognize
+    space_id="username/trackio",     # Default space: {username}/trackio
+    config={
+        # Keep config minimal - hyperparameters and model/dataset info only
+        "model": "Qwen/Qwen2.5-0.5B",
+        "dataset": "trl-lib/Capybara",
+        "learning_rate": 2e-5,
+        "num_epochs": 3,
+    }
+)
+```
+
+**Key principles:**
+- **Space ID**: Use `{username}/trackio` with "trackio" as default space name
+- **Run naming**: Unless otherwise specified, name the run in a way the user will recognize
+- **Config**: Keep minimal - don't automatically capture job metadata unless requested
+- **Grouping**: Optional - only use if user requests organizing related experiments
+
+## Grouping Runs (Optional)
+
+The `group` parameter helps organize related runs together in the dashboard sidebar. This is useful when user is running multiple experiments with different configurations but wants to compare them together:
+
+```python
+# Example: Group runs by experiment type
+trackio.init(project="my-project", name="baseline-run-1", group="baseline")
+trackio.init(project="my-project", name="augmented-run-1", group="augmented")
+trackio.init(project="my-project", name="tuned-run-1", group="tuned")
+```
+
+Runs with the same group name can be grouped together in the sidebar, making it easier to compare related experiments. You can group by any configuration parameter:
+
+```python
+# Hyperparameter sweep - group by learning rate
+trackio.init(project="hyperparam-sweep", name="lr-0.001-run", group="lr_0.001")
+trackio.init(project="hyperparam-sweep", name="lr-0.01-run", group="lr_0.01")
+```
+
+## Environment Variables for Jobs
+
+You can configure trackio using environment variables instead of passing parameters to `trackio.init()`. This is useful for managing configuration across multiple jobs.
+
+### Configuration Environment Variables
+
+**`TRACKIO_PROJECT_NAME`**
+Set the project name via environment variable:
+```python
+hf_jobs("uv", {
+    "script": """
+import os
+os.environ["TRACKIO_PROJECT_NAME"] = "my-training"
+
+# trackio will use the project name from environment
+trackio.init(name=run_name, group="SFT", space_id="username/trackio")
+# ...
+""",
+    # Or set at job level:
+    "env": {"TRACKIO_PROJECT_NAME": "my-training"}
+})
+```
+
+**`TRACKIO_SPACE_ID`**
+Set the space ID via environment variable:
+```python
+hf_jobs("uv", {
+    "script": """
+import os
+os.environ["TRACKIO_SPACE_ID"] = "username/trackio"
+
+# trackio will use the space ID from environment
+trackio.init(project="my-training", name=run_name, group="SFT")
+# ...
+""",
+    # Or set at job level:
+    "env": {"TRACKIO_SPACE_ID": "username/trackio"}
+})
+```
+
+**`HF_TOKEN`**
+Required for creating Spaces and writing to datasets (passed via `secrets`):
+```python
+hf_jobs("uv", {
+    "script": "...",
+    "secrets": {
+        "HF_TOKEN": "$HF_TOKEN"  # Enables Space creation and Hub push
+    }
+})
+```
+
+### Example with Environment Variables
+
+```python
+hf_jobs("uv", {
+    "script": """
+# Training script - trackio config from environment
+import trackio
+from datetime import datetime
+
+# Auto-generate run name
+timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+run_name = f"sft_qwen25_{timestamp}"
+
+# Project and space_id can come from environment variables
+trackio.init(name=run_name, group="SFT")
+
+# ... training code ...
+trackio.finish()
+""",
+    "flavor": "a10g-large",
+    "timeout": "2h",
+    "secrets": {"HF_TOKEN": "$HF_TOKEN"},
+    "env": {
+        "TRACKIO_PROJECT_NAME": "my-training",
+        "TRACKIO_SPACE_ID": "username/trackio"
+    }
+})
+```
+
+**When to use environment variables:**
+- Managing multiple jobs with same configuration
+- Keeping training scripts portable across projects
+- Separating configuration from code
+
+**When to use direct parameters:**
+- Single job with specific configuration
+- When clarity in code is preferred
+- When each job has different project/space
+
 ## Viewing the Dashboard
 
 After starting training:
