@@ -124,20 +124,6 @@ trackio.init(
 trackio.finish()
 ```
 
-### Using Environment Variables
-
-Pass trackio configuration via job `env` parameter for managing multiple jobs with same settings:
-
-```python
-hf_jobs("uv", {
-    "script": "...",
-    "env": {
-        "TRACKIO_PROJECT": "my-training",
-        "TRACKIO_SPACE_ID": "username/trackio"
-    }
-})
-```
-
 ### Grouping for Experiments (Optional)
 
 When user wants to compare related runs, use the `group` parameter:

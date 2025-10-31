@@ -128,41 +128,7 @@ trackio.init(project="hyperparam-sweep", run_name="lr-0.01-run", group="lr_0.01"
 
 You can configure trackio using environment variables instead of passing parameters to `trackio.init()`. This is useful for managing configuration across multiple jobs.
 
-### Configuration Environment Variables
 
-**`TRACKIO_PROJECT`**
-Set the project name via environment variable:
-```python
-hf_jobs("uv", {
-    "script": """
-import os
-os.environ["TRACKIO_PROJECT"] = "my-training"
-
-# trackio will use the project name from environment
-trackio.init(run_name="descriptive name", group="SFT", space_id="username/trackio")
-# ...
-""",
-    # Or set at job level:
-    "env": {"TRACKIO_PROJECT": "my-training"}
-})
-```
-
-**`TRACKIO_SPACE_ID`**
-Set the space ID via environment variable:
-```python
-hf_jobs("uv", {
-    "script": """
-import os
-os.environ["TRACKIO_SPACE_ID"] = "username/trackio"
-
-# trackio will use the space ID from environment. use a descriptive name for the run.
-trackio.init(project="my-training", run_name="descriptive name", group="SFT")
-# ...
-""",
-    # Or set at job level:
-    "env": {"TRACKIO_SPACE_ID": "username/trackio"}
-})
-```
 
 **`HF_TOKEN`**
 Required for creating Spaces and writing to datasets (passed via `secrets`):
@@ -196,11 +162,7 @@ trackio.finish()
 """,
     "flavor": "a10g-large",
     "timeout": "2h",
-    "secrets": {"HF_TOKEN": "$HF_TOKEN"},
-    "env": {
-        "TRACKIO_PROJECT": "my-training",
-        "TRACKIO_SPACE_ID": "username/trackio"
-    }
+    "secrets": {"HF_TOKEN": "$HF_TOKEN"}
 })
 ```
 

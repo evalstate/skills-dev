@@ -176,7 +176,8 @@ trainer = SFTTrainer(
         eval_strategy="steps",
         eval_steps=50,
         report_to="trackio",
-        run_name="meaningful_run_name",
+        project="meaningful_prject_name", # project name for the training name (trackio)
+        run_name="meaningful_run_name",   # descriptive name for the specific training run (trackio)
     )
 )
 
@@ -413,10 +414,7 @@ These scripts demonstrate proper Hub saving, Trackio integration, checkpoint man
 - **Space ID**: `{username}/trackio` (use "trackio" as default space name)
 - **Run naming**: Unless otherwise specified, name the run in a way the user will recognize (e.g., descriptive of the task, model, or purpose)
 - **Config**: Keep minimal - only include hyperparameters and model/dataset info
-
-**Environment variables:** Configuration can be passed via environment variables in the job's `env` parameter:
-- `TRACKIO_PROJECT` - Set project name via environment instead of parameter
-- `TRACKIO_SPACE_ID` - Set space ID via environment instead of parameter
+- **Project Name**: Use a Project Name to associate runs with a particular Project 
 
 **User overrides:** If user requests specific trackio configuration (custom space, run naming, grouping, or additional config), apply their preferences instead of defaults.
 
