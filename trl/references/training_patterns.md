@@ -39,8 +39,6 @@ from datasets import load_dataset
 from trl import DPOTrainer, DPOConfig
 import trackio
 
-trackio.init(project="dpo-training", space_id="username/trackio")
-
 dataset = load_dataset("trl-lib/ultrafeedback_binarized", split="train")
 
 # Create train/eval split
@@ -55,6 +53,8 @@ config = DPOConfig(
     eval_strategy="steps",
     eval_steps=50,
     report_to="trackio",
+    run_name="baseline_run", # use a meaningful run name
+    # max_length=1024,  # Default - only set if you need different sequence length
 )
 
 trainer = DPOTrainer(
@@ -109,7 +109,7 @@ import trackio
 
 trackio.init(
     project="my-training",
-    name="baseline-run",             # Descriptive name user will recognize
+    run_name="baseline-run",             # Descriptive name user will recognize
     space_id="username/trackio",     # Default space: {username}/trackio
     config={
         # Keep config minimal - hyperparameters and model/dataset info only
@@ -144,8 +144,8 @@ When user wants to compare related runs, use the `group` parameter:
 
 ```python
 # Hyperparameter sweep
-trackio.init(project="hyperparam-sweep", name="lr-0.001", group="lr_0.001")
-trackio.init(project="hyperparam-sweep", name="lr-0.01", group="lr_0.01")
+trackio.init(project="hyperparam-sweep", run_name="lr-0.001", group="lr_0.001")
+trackio.init(project="hyperparam-sweep", run_name="lr-0.01", group="lr_0.01")
 ```
 
 ## Pattern Selection Guide

@@ -33,18 +33,6 @@ import trackio
 from datasets import load_dataset
 from trl import GRPOTrainer, GRPOConfig
 
-# Initialize Trackio for real-time monitoring
-trackio.init(
-    project="qwen-grpo-math",
-    name="math-rl-training",  # Descriptive name for this training run
-    space_id="username/trackio",  # Default space: {username}/trackio
-    config={
-        # Keep config minimal - hyperparameters and model/dataset info only
-        "model": "Qwen/Qwen2.5-0.5B-Instruct",
-        "dataset": "trl-lib/math_shepherd",
-        "method": "GRPO",
-    }
-)
 
 # Load dataset (GRPO uses prompt-only format)
 dataset = load_dataset("trl-lib/math_shepherd", split="train")
@@ -75,7 +63,9 @@ config = GRPOConfig(
     lr_scheduler_type="cosine",
 
     # Monitoring
-    report_to="trackio",
+    report_to="trackio",  # Integrate with Trackio
+    run_name="baseline-run", #Descriptive name for this training run
+
 )
 
 # Initialize and train
@@ -92,8 +82,6 @@ trainer.train()
 print("💾 Pushing to Hub...")
 trainer.push_to_hub()
 
-# Finish Trackio tracking
-trackio.finish()
 
 print("✅ Complete! Model at: https://huggingface.co/username/qwen-grpo-math")
 print("📊 View metrics at: https://huggingface.co/spaces/username/trackio")

@@ -92,6 +92,24 @@ trainer = SFTTrainer(
 - A10G (24GB): 1-3B models with LoRA, <1B full fine-tune
 - A100 (40GB/80GB): 7B+ models with LoRA, 3B full fine-tune
 
+## Parameter Naming Issues
+
+**Problem:** `TypeError: SFTConfig.__init__() got an unexpected keyword argument 'max_seq_length'`
+
+**Cause:** TRL config classes use `max_length`, not `max_seq_length`.
+
+**Solution:**
+```python
+# ✅ CORRECT - TRL uses max_length
+SFTConfig(max_length=512)
+DPOConfig(max_length=512)
+
+# ❌ WRONG - This will fail
+SFTConfig(max_seq_length=512)
+```
+
+**Note:** Most TRL configs don't require explicit max_length - the default (1024) works well. Only set if you need a specific value.
+
 ## Dataset Format Error
 
 **Problem:** Training fails with dataset format errors or missing fields.

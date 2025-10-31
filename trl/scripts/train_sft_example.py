@@ -36,20 +36,7 @@ from datasets import load_dataset
 from peft import LoraConfig
 from trl import SFTTrainer, SFTConfig
 
-# Initialize Trackio for real-time monitoring
-trackio.init(
-    project="qwen-capybara-sft",
-    name="baseline-run",  # Descriptive name for this training run
-    space_id="username/trackio",  # Default space: {username}/trackio
-    config={
-        # Keep config minimal - hyperparameters and model/dataset info only
-        "model": "Qwen/Qwen2.5-0.5B",
-        "dataset": "trl-lib/Capybara",
-        "learning_rate": 2e-5,
-        "num_epochs": 3,
-        "peft_method": "LoRA",
-    }
-)
+
 
 # Load dataset
 print("📦 Loading dataset...")
@@ -80,6 +67,7 @@ config = SFTConfig(
     per_device_train_batch_size=4,
     gradient_accumulation_steps=4,
     learning_rate=2e-5,
+    # max_length=1024,  # Default - only set if you need different sequence length
 
     # Logging & checkpointing
     logging_steps=10,
@@ -97,7 +85,7 @@ config = SFTConfig(
 
     # Monitoring
     report_to="trackio",  # Integrate with Trackio
-)
+    run_name="baseline-run", #Descriptive name for this training run
 
 # LoRA configuration
 peft_config = LoraConfig(
@@ -126,7 +114,5 @@ print("💾 Pushing to Hub...")
 trainer.push_to_hub()
 
 # Finish Trackio tracking
-trackio.finish()
-
 print("✅ Complete! Model at: https://huggingface.co/username/qwen-capybara-sft")
 print("📊 View metrics at: https://huggingface.co/spaces/username/trackio")

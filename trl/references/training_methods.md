@@ -25,6 +25,7 @@ trainer = SFTTrainer(
         push_to_hub=True,
         hub_model_id="username/my-model",
         eval_strategy="no",  # Disable eval for simple example
+        # max_length=1024 is the default - only set if you need different length
     )
 )
 trainer.train()
@@ -56,6 +57,7 @@ trainer = DPOTrainer(
         output_dir="dpo-model",
         beta=0.1,  # KL penalty coefficient
         eval_strategy="no",  # Disable eval for simple example
+        # max_length=1024 is the default - only set if you need different length
     )
 )
 trainer.train()

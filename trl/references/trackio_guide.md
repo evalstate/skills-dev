@@ -111,17 +111,17 @@ The `group` parameter helps organize related runs together in the dashboard side
 
 ```python
 # Example: Group runs by experiment type
-trackio.init(project="my-project", name="baseline-run-1", group="baseline")
-trackio.init(project="my-project", name="augmented-run-1", group="augmented")
-trackio.init(project="my-project", name="tuned-run-1", group="tuned")
+trackio.init(project="my-project", run_name="baseline-run-1", group="baseline")
+trackio.init(project="my-project", run_name="augmented-run-1", group="augmented")
+trackio.init(project="my-project", run_name="tuned-run-1", group="tuned")
 ```
 
 Runs with the same group name can be grouped together in the sidebar, making it easier to compare related experiments. You can group by any configuration parameter:
 
 ```python
 # Hyperparameter sweep - group by learning rate
-trackio.init(project="hyperparam-sweep", name="lr-0.001-run", group="lr_0.001")
-trackio.init(project="hyperparam-sweep", name="lr-0.01-run", group="lr_0.01")
+trackio.init(project="hyperparam-sweep", run_name="lr-0.001-run", group="lr_0.001")
+trackio.init(project="hyperparam-sweep", run_name="lr-0.01-run", group="lr_0.01")
 ```
 
 ## Environment Variables for Jobs
@@ -139,7 +139,7 @@ import os
 os.environ["TRACKIO_PROJECT_NAME"] = "my-training"
 
 # trackio will use the project name from environment
-trackio.init(name=run_name, group="SFT", space_id="username/trackio")
+trackio.init(run_name="descriptive name", group="SFT", space_id="username/trackio")
 # ...
 """,
     # Or set at job level:
@@ -155,8 +155,8 @@ hf_jobs("uv", {
 import os
 os.environ["TRACKIO_SPACE_ID"] = "username/trackio"
 
-# trackio will use the space ID from environment
-trackio.init(project="my-training", name=run_name, group="SFT")
+# trackio will use the space ID from environment. use a descriptive name for the run.
+trackio.init(project="my-training", run_name="descriptive name", group="SFT")
 # ...
 """,
     # Or set at job level:
@@ -189,7 +189,7 @@ timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
 run_name = f"sft_qwen25_{timestamp}"
 
 # Project and space_id can come from environment variables
-trackio.init(name=run_name, group="SFT")
+trackio.init(run_name=run_name, group="SFT")
 
 # ... training code ...
 trackio.finish()

@@ -29,20 +29,6 @@ import trackio
 from datasets import load_dataset
 from trl import DPOTrainer, DPOConfig
 
-# Initialize Trackio for real-time monitoring
-trackio.init(
-    project="qwen-dpo-alignment",
-    name="preference-alignment",  # Descriptive name for this training run
-    space_id="username/trackio",  # Default space: {username}/trackio
-    config={
-        # Keep config minimal - hyperparameters and model/dataset info only
-        "model": "Qwen/Qwen2.5-0.5B-Instruct",
-        "dataset": "trl-lib/ultrafeedback_binarized",
-        "method": "DPO",
-        "beta": 0.1,
-        "num_epochs": 1,
-    }
-)
 
 # Load preference dataset
 print("📦 Loading dataset...")
@@ -73,6 +59,7 @@ config = DPOConfig(
     per_device_train_batch_size=4,
     gradient_accumulation_steps=4,
     learning_rate=5e-7,  # DPO uses much lower LR than SFT
+    # max_length=1024,  # Default - only set if you need different sequence length
 
     # Logging & checkpointing
     logging_steps=10,
@@ -89,7 +76,9 @@ config = DPOConfig(
     lr_scheduler_type="cosine",
 
     # Monitoring
-    report_to="trackio",
+    report_to="trackio",  # Integrate with Trackio
+    run_name="baseline-run", #Descriptive name for this training run
+
 )
 
 # Initialize and train

@@ -63,7 +63,9 @@ Before starting any training job, verify:
 - Hugging Face Account with [Pro](https://hf.co/pro), [Team](https://hf.co/enterprise), or [Enterprise](https://hf.co/enterprise) plan (Jobs require paid plan)
 - Authenticated login: Check with `hf_whoami()`
 - **HF_TOKEN for Hub Push** ⚠️ CRITICAL - Training environment is ephemeral, must push to Hub or ALL training results are lost
-- Token must have write permissions and is automatically available as `$HF_TOKEN` in job secrets
+- Token must have write permissions  
+- **MUST pass `secrets={"HF_TOKEN": "$HF_TOKEN"}` in job config** to make token available (the `$HF_TOKEN` syntax
+  references your actual token value)
 
 ### ✅ **Dataset Requirements**
 - Dataset must exist on Hub or be loadable via `datasets.load_dataset()`
@@ -118,6 +120,28 @@ The job is running in the background. Ask me to check status/logs when ready!
 
 **💡 Tip for Demos:** For quick demos on smaller GPUs (t4-small), omit `eval_dataset` and `eval_strategy` to save ~40% memory. You'll still see training loss and learning progress.
 
+### Sequence Length Configuration
+
+**TRL config classes use `max_length` (not `max_seq_length`)** to control tokenized sequence length:
+
+```python
+# ✅ CORRECT - If you need to set sequence length
+SFTConfig(max_length=512)   # Truncate sequences to 512 tokens
+DPOConfig(max_length=2048)  # Longer context (2048 tokens)
+
+# ❌ WRONG - This parameter doesn't exist
+SFTConfig(max_seq_length=512)  # TypeError!
+```
+
+**Default behavior:** `max_length=1024` (truncates from right). This works well for most training.
+
+**When to override:**
+- **Longer context**: Set higher (e.g., `max_length=2048`)
+- **Memory constraints**: Set lower (e.g., `max_length=512`)
+- **Vision models**: Set `max_length=None` (prevents cutting image tokens)
+
+**Usually you don't need to set this parameter at all** - the examples below use the sensible default.
+
 ### Approach 1: UV Scripts (Recommended—Default Choice)
 
 UV scripts use PEP 723 inline dependencies for clean, self-contained training. **This is the primary approach for Claude Code.**
@@ -133,8 +157,6 @@ from datasets import load_dataset
 from peft import LoraConfig
 from trl import SFTTrainer, SFTConfig
 import trackio
-
-trackio.init(project="my-training", space_id="username/my-dashboard")
 
 dataset = load_dataset("trl-lib/Capybara", split="train")
 
@@ -154,12 +176,12 @@ trainer = SFTTrainer(
         eval_strategy="steps",
         eval_steps=50,
         report_to="trackio",
+        run_name="meaningful_run_name",
     )
 )
 
 trainer.train()
 trainer.push_to_hub()
-trackio.finish()
 """,
     "flavor": "a10g-large",
     "timeout": "2h",
@@ -272,7 +294,7 @@ trl-jobs sft \
 
 | Model Size | Recommended Hardware | Cost (approx/hr) | Use Case |
 |------------|---------------------|------------------|----------|
-| <1B params | `t4-small` | ~$0.75 | Demos, quick tests only |
+| <1B params | `t4-small` | ~$0.75 | Demos, quick tests only without eval steps |
 | 1-3B params | `t4-medium`, `l4x1` | ~$1.50-2.50 | Development |
 | 3-7B params | `a10g-small`, `a10g-large` | ~$3.50-5.00 | Production training |
 | 7-13B params | `a10g-large`, `a100-large` | ~$5-10 | Large models (use LoRA) |
@@ -367,6 +389,8 @@ Output includes estimated time, cost, recommended timeout (with buffer), and opt
 
 **Production-ready templates with all best practices:**
 
+Load these scripts for correctly:
+
 - **`scripts/train_sft_example.py`** - Complete SFT training with Trackio, LoRA, checkpoints
 - **`scripts/train_dpo_example.py`** - DPO training for preference learning
 - **`scripts/train_grpo_example.py`** - GRPO training for online RL
@@ -378,12 +402,8 @@ These scripts demonstrate proper Hub saving, Trackio integration, checkpoint man
 **Trackio** provides real-time metrics visualization. See `references/trackio_guide.md` for complete setup guide.
 
 **Key points:**
-- Add `"trackio"` to dependencies
-- Initialize with `trackio.init(project="name", space_id="username/dashboard")`
-- Configure trainer with `report_to="trackio"`
-- Call `trackio.finish()` after training
-
-**Alternative:** Use `report_to="tensorboard"` for simpler setup (logs saved with model to Hub)
+- Add `trackio` to dependencies
+- Configure trainer with `report_to="trackio" and run_name="meaningful_name"`
 
 ### Trackio Configuration Defaults
 
@@ -394,28 +414,12 @@ These scripts demonstrate proper Hub saving, Trackio integration, checkpoint man
 - **Run naming**: Unless otherwise specified, name the run in a way the user will recognize (e.g., descriptive of the task, model, or purpose)
 - **Config**: Keep minimal - only include hyperparameters and model/dataset info
 
-**Example with defaults:**
-```python
-import trackio
-
-trackio.init(
-    project="qwen-capybara-sft",
-    name="baseline-run",              # Descriptive name user will recognize
-    space_id="username/trackio",      # Default space: {username}/trackio
-    config={
-        "model": "Qwen/Qwen2.5-0.5B",
-        "dataset": "trl-lib/Capybara",
-        "learning_rate": 2e-5,
-        "num_epochs": 3,
-    }
-)
-```
-
-**User overrides:** If user requests specific trackio configuration (custom space, run naming, grouping, or additional config), apply their preferences instead of defaults.
-
 **Environment variables:** Configuration can be passed via environment variables in the job's `env` parameter:
 - `TRACKIO_PROJECT_NAME` - Set project name via environment instead of parameter
 - `TRACKIO_SPACE_ID` - Set space ID via environment instead of parameter
+
+**User overrides:** If user requests specific trackio configuration (custom space, run naming, grouping, or additional config), apply their preferences instead of defaults.
+
 
 This is useful for managing multiple jobs with the same configuration or keeping training scripts portable.
 
