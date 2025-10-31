@@ -130,20 +130,20 @@ You can configure trackio using environment variables instead of passing paramet
 
 ### Configuration Environment Variables
 
-**`TRACKIO_PROJECT_NAME`**
+**`TRACKIO_PROJECT`**
 Set the project name via environment variable:
 ```python
 hf_jobs("uv", {
     "script": """
 import os
-os.environ["TRACKIO_PROJECT_NAME"] = "my-training"
+os.environ["TRACKIO_PROJECT"] = "my-training"
 
 # trackio will use the project name from environment
 trackio.init(run_name="descriptive name", group="SFT", space_id="username/trackio")
 # ...
 """,
     # Or set at job level:
-    "env": {"TRACKIO_PROJECT_NAME": "my-training"}
+    "env": {"TRACKIO_PROJECT": "my-training"}
 })
 ```
 
@@ -198,7 +198,7 @@ trackio.finish()
     "timeout": "2h",
     "secrets": {"HF_TOKEN": "$HF_TOKEN"},
     "env": {
-        "TRACKIO_PROJECT_NAME": "my-training",
+        "TRACKIO_PROJECT": "my-training",
         "TRACKIO_SPACE_ID": "username/trackio"
     }
 })

@@ -132,7 +132,7 @@ Pass trackio configuration via job `env` parameter for managing multiple jobs wi
 hf_jobs("uv", {
     "script": "...",
     "env": {
-        "TRACKIO_PROJECT_NAME": "my-training",
+        "TRACKIO_PROJECT": "my-training",
         "TRACKIO_SPACE_ID": "username/trackio"
     }
 })

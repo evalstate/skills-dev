@@ -415,7 +415,7 @@ These scripts demonstrate proper Hub saving, Trackio integration, checkpoint man
 - **Config**: Keep minimal - only include hyperparameters and model/dataset info
 
 **Environment variables:** Configuration can be passed via environment variables in the job's `env` parameter:
-- `TRACKIO_PROJECT_NAME` - Set project name via environment instead of parameter
+- `TRACKIO_PROJECT` - Set project name via environment instead of parameter
 - `TRACKIO_SPACE_ID` - Set space ID via environment instead of parameter
 
 **User overrides:** If user requests specific trackio configuration (custom space, run naming, grouping, or additional config), apply their preferences instead of defaults.
